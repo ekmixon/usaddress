@@ -11,7 +11,7 @@ def xmlToAddrList(xml_file):
     root = tree.getroot()
     addr_list = []
     for element in root:
-        if element.tag == 'node' or element.tag == 'way':
+        if element.tag in ['node', 'way']:
             address = {}
             for x in element.iter('tag'):
                 addr = ast.literal_eval(str(x.attrib))
@@ -37,13 +37,13 @@ def osmNaturalToTraining(xml_file):
         "addr:city": "PlaceName",
         "addr:state": "StateName",
         "addr:postcode": "ZipCode"}
+    is_token_taggable = False
     for address in address_list:
         addr_tokens = address['addr:full'].split()
         train_addr = etree.Element('AddressString')
         is_addr_taggable = True
         # loop through tokens & find tags for each
         for token in addr_tokens:
-            is_token_taggable = False
             for key, value in list(address.items()):
                 if all([key in list(osm_tags_to_addr_tags.keys()),
                         key != 'addr:full',
@@ -52,10 +52,10 @@ def osmNaturalToTraining(xml_file):
                     # check for punctuation
                     token_xml.text = token
                     if token[-1] in punc_list:
-                        token_xml.text = token[0:-1]
+                        token_xml.text = token[:-1]
                         token_xml.tail = token[-1]
                     train_addr.append(token_xml)
-            if is_token_taggable is False:
+            if not is_token_taggable:
                 is_addr_taggable = False
         if is_addr_taggable is True:
             train_addr_list.append(train_addr)
@@ -96,8 +96,7 @@ def osmSyntheticToTraining(xml_file):
                     components[tag_type].append(token_xml)
 
         for tag_type in ('Street', 'City', 'Area'):
-            l = components[tag_type]
-            if l:
+            if l := components[tag_type]:
                 l[-1].text += ','
 
         address_xml = (components['Street'] +

@@ -53,12 +53,27 @@ PARENT_LABEL = 'AddressString'
 GROUP_LABEL = 'AddressCollection'
 
 MODEL_FILE = 'usaddr.crfsuite'
-MODEL_PATH = os.path.split(os.path.abspath(__file__))[0] + '/' + MODEL_FILE
+MODEL_PATH = f'{os.path.split(os.path.abspath(__file__))[0]}/{MODEL_FILE}'
 
-DIRECTIONS = set(['n', 's', 'e', 'w',
-                  'ne', 'nw', 'se', 'sw',
-                  'north', 'south', 'east', 'west',
-                  'northeast', 'northwest', 'southeast', 'southwest'])
+DIRECTIONS = {
+    'n',
+    's',
+    'e',
+    'w',
+    'ne',
+    'nw',
+    'se',
+    'sw',
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+}
+
 
 STREET_NAMES = {
     'allee', 'alley', 'ally', 'aly', 'anex', 'annex', 'annx', 'anx',
@@ -167,7 +182,7 @@ def tag(address_string, tag_mapping=None):
         if label == 'IntersectionSeparator':
             is_intersection = True
         if 'StreetName' in label and is_intersection:
-            label = 'Second' + label
+            label = f'Second{label}'
 
         # saving old label
         og_labels.append(label)
@@ -217,10 +232,7 @@ def tokenize(address_string):
 
     tokens = re_tokens.findall(address_string)
 
-    if not tokens:
-        return []
-
-    return tokens
+    return tokens or []
 
 
 def tokenFeatures(token):
@@ -231,27 +243,23 @@ def tokenFeatures(token):
                              flags=re.UNICODE)
 
     token_abbrev = re.sub(r'[.]', u'', token_clean.lower())
-    features = {
+    return {
         'abbrev': token_clean[-1] == u'.',
         'digits': digits(token_clean),
-        'word': (token_abbrev
-                 if not token_abbrev.isdigit()
-                 else False),
-        'trailing.zeros': (trailingZeros(token_abbrev)
-                           if token_abbrev.isdigit()
-                           else False),
-        'length': (u'd:' + str(len(token_abbrev))
-                   if token_abbrev.isdigit()
-                   else u'w:' + str(len(token_abbrev))),
-        'endsinpunc': (token[-1]
-                       if bool(re.match('.+[^.\w]', token, flags=re.UNICODE))
-                       else False),
+        'word': False if token_abbrev.isdigit() else token_abbrev,
+        'trailing.zeros': trailingZeros(token_abbrev)
+        if token_abbrev.isdigit()
+        else False,
+        'length': f'd:{len(token_abbrev)}'
+        if token_abbrev.isdigit()
+        else f'w:{len(token_abbrev)}',
+        'endsinpunc': token[-1]
+        if bool(re.match('.+[^.\w]', token, flags=re.UNICODE))
+        else False,
         'directional': token_abbrev in DIRECTIONS,
         'street_name': token_abbrev in STREET_NAMES,
         'has.vowels': bool(set(token_abbrev[1:]) & set('aeiou')),
     }
-
-    return features
 
 
 def tokens2features(address):
@@ -289,11 +297,7 @@ def digits(token):
 
 
 def trailingZeros(token):
-    results = re.findall(r'(0+)$', token)
-    if results:
-        return results[0]
-    else:
-        return ''
+    return results[0] if (results := re.findall(r'(0+)$', token)) else ''
 
 
 class RepeatedLabelError(probableparsing.RepeatedLabelError):

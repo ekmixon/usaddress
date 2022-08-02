@@ -66,7 +66,6 @@ def equals(addr,
 def fuzzyEquals(addr,
                 labels_pred,
                 labels_true):
-    labels = []
     fuzzy_labels = []
     for label in labels_pred:
         if label.startswith('StreetName'):
@@ -77,8 +76,7 @@ def fuzzyEquals(addr,
             fuzzy_labels.append('NotAddress')
         else:
             fuzzy_labels.append(label)
-    for label in labels_true:
-        labels.append(label)
+    labels = list(labels_true)
     prettyPrint(addr, fuzzy_labels, labels)
 
     assert fuzzy_labels == labels
